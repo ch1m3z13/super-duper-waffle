@@ -10,7 +10,7 @@
     "webhookUrl": "https://wtfjusthappened.vercel.app/api/webhook",
     "subtitle": "Decode any onchain transaction",
     "primaryCategory": "utility",
-    "description": "Paste any Base transaction hash and get a plain-English explanation in seconds — no crypto knowledge required. Find out exactly what you did, what you paid, and whether anything looks off."
+    "description": "Paste any Base transaction hash and get a plain-English explanation — no crypto knowledge required."
   },
   "accountAssociation": {
     "header": "eyJmaWQiOjEwOTkzODIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhjYTA4M2RCMUY4OTI5ZWFEOGUzYjY3ODNEQTlGYjhhMDUzMWRkYTFkIn0",
