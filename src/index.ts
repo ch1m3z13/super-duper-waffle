@@ -113,6 +113,10 @@ registerSnapHandler(
         return resultPage(base, result, tx, FREE_LIMIT - (usage + 1));
       } catch (err) {
         console.error("explainTransaction failed:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("quota") || msg.includes("rate") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+          return errorPage(base, "The AI explainer is at capacity right now. Please try again in a moment.");
+        }
         return errorPage(
           base,
           "Couldn't decode that transaction. It may not be on Base, or may still be pending — try again in a moment."

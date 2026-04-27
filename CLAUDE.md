@@ -42,7 +42,7 @@ src/
 
 ## Key Environment Variables
 
-- `GEMINI_API_KEY` — Claude API key
+- `OLLAMA_API_KEY` / `OLLAMA_BASE_URL` / `OLLAMA_MODEL` — Ollama API for AI explanations (local or cloud)
 - `ALCHEMY_API_KEY` — Base mainnet JSON-RPC
 - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` — production persistence (not needed locally)
 - `SNAP_PUBLIC_BASE_URL` — your Vercel URL (auto-detected if not set)

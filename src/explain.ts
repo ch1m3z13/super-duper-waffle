@@ -1,4 +1,4 @@
-// Transaction decoding via Alchemy + plain-English explanation via Claude.
+// Transaction decoding via Alchemy + plain-English explanation via Ollama.
 // All network calls are isolated here so they're easy to mock in tests.
 
 import type { TxResult } from "./pages.js";
@@ -40,7 +40,6 @@ function weiToEth(weiHex: string): string {
   if (wei === 0n) return "0 ETH";
   const eth = Number(wei) / 1e18;
   if (eth < 0.000001) {
-    // Show in Gwei instead
     const gwei = Number(wei) / 1e9;
     return `${gwei.toFixed(4)} Gwei`;
   }
@@ -75,11 +74,61 @@ interface AlchemyReceipt {
 }
 
 // ---------------------------------------------------------------------------
+// Ollama API
+// ---------------------------------------------------------------------------
+
+function ollamaUrl(): string {
+  const key = process.env.OLLAMA_API_KEY;
+  if (key) {
+    // Ollama Cloud — uses api.ollama.ai with Bearer token
+    return "https://api.ollama.ai/chat";
+  }
+  // Local Ollama
+  const localUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
+  return `${localUrl}/api/chat`;
+}
+
+function ollamaModel(): string {
+  return process.env.OLLAMA_MODEL ?? "llama3.2";
+}
+
+async function askOllama(systemPrompt: string, userContent: string): Promise<string> {
+  const url = ollamaUrl();
+  const model = ollamaModel();
+  const key = process.env.OLLAMA_API_KEY;
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (key) {
+    headers["Authorization"] = `Bearer ${key}`;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      stream: false,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Ollama API error ${res.status}: ${text}`);
+  }
+
+  const data = (await res.json()) as { message?: { content?: string } };
+  return data.message?.content ?? "";
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
 export async function explainTransaction(txHash: string): Promise<TxResult> {
-  // Fetch tx + receipt in parallel
   const [tx, receipt] = await Promise.all([
     rpc("eth_getTransactionByHash", [txHash]) as Promise<AlchemyTx | null>,
     rpc("eth_getTransactionReceipt", [txHash]) as Promise<AlchemyReceipt | null>,
@@ -87,7 +136,6 @@ export async function explainTransaction(txHash: string): Promise<TxResult> {
 
   if (!tx) throw new Error("Transaction not found");
 
-  // Calculate gas cost
   const gasUsed = receipt ? hexToNumber(receipt.gasUsed) : 0;
   const gasPrice = tx.gasPrice
     ? hexToNumber(tx.gasPrice)
@@ -101,7 +149,6 @@ export async function explainTransaction(txHash: string): Promise<TxResult> {
   const status = receipt?.status === "0x1" ? "succeeded" : receipt ? "failed" : "pending";
   const txType = classify(tx, receipt);
 
-  // Build a concise summary for Claude — only include non-null fields
   const txContext = {
     from: tx.from,
     to: tx.to ?? "(new contract)",
@@ -110,7 +157,6 @@ export async function explainTransaction(txHash: string): Promise<TxResult> {
     gasPaid,
     status,
     type: txType,
-    // Only send the 4-byte function selector (first 10 chars of input) — not the full calldata
     functionSelector:
       tx.input && tx.input.length >= 10 && tx.input !== "0x"
         ? tx.input.slice(0, 10)
@@ -119,22 +165,13 @@ export async function explainTransaction(txHash: string): Promise<TxResult> {
     contractDeployed: receipt?.contractAddress ?? null,
   };
 
-  // ---------------------------------------------------------------------------
-  // Ask Gemini for a plain-English explanation
-  // ---------------------------------------------------------------------------
-
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) throw new Error("GEMINI_API_KEY is not set");
-
-  const geminiModel = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
-
   const systemPrompt = `You are a blockchain transaction explainer for complete beginners on the Base network.
 
 Given raw transaction data, respond ONLY with a valid JSON object. No markdown, no backticks, no extra text.
 
 Required fields:
 {
-  "summary": "1–2 sentences in plain English (max 220 chars). No jargon. Start with 'You' or 'Someone'.",
+  "summary": "1-2 sentences in plain English (max 220 chars). No jargon. Start with 'You' or 'Someone'.",
   "risk": "safe" | "warning" | "danger",
   "riskReason": "One clear sentence (max 100 chars) — REQUIRED if risk is warning or danger, omit if safe"
 }
@@ -144,37 +181,13 @@ Risk guide:
 - warning: failed transaction, unusual gas, interaction with unknown contract.
 - danger: potential scam pattern, approval of unlimited tokens, suspicious address.`;
 
-  const aiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: `Explain this Base network transaction:\n${JSON.stringify(txContext, null, 2)}`,
-              },
-            ],
-          },
-        ],
-        generationConfig: { maxOutputTokens: 400 },
-      }),
-    }
-  );
-
-  if (!aiRes.ok) {
-    throw new Error(`Gemini API error: ${aiRes.status}`);
+  let rawText: string;
+  try {
+    rawText = await askOllama(systemPrompt, `Explain this Base network transaction:\n${JSON.stringify(txContext, null, 2)}`);
+  } catch (err) {
+    console.error("askOllama failed:", err);
+    throw err;
   }
-
-  const aiData = (await aiRes.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-
-  const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
 
   let parsed: {
     summary: string;
@@ -185,7 +198,6 @@ Risk guide:
   try {
     parsed = JSON.parse(rawText.replace(/```json|```/g, "").trim());
   } catch {
-    // Graceful fallback — don't expose parse errors to the user
     parsed = {
       summary: `This ${txType.toLowerCase()} ${status} on the Base network.`,
       risk: status === "failed" ? "warning" : "safe",
