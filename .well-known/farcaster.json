@@ -1,0 +1,15 @@
+{
+  "frame": {
+    "name": "WTF Just Happened?",
+    "version": "1",
+    "iconUrl": "https://wtfjusthappened.vercel.app/icon.png",
+    "homeUrl": "https://wtfjusthappened.vercel.app",
+    "imageUrl": "https://wtfjusthappened.vercel.app/image.png",
+    "splashImageUrl": "https://wtfjusthappened.vercel.app/splash.png",
+    "splashBackgroundColor": "#6200EA",
+    "webhookUrl": "https://wtfjusthappened.vercel.app/api/webhook",
+    "subtitle": "Decode any onchain transaction",
+    "primaryCategory": "utility",
+    "description": "Paste any Base transaction hash and get a plain-English explanation in seconds — no crypto knowledge required. Find out exactly what you did, what you paid, and whether anything looks off."
+  }
+}
