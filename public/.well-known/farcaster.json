@@ -11,5 +11,10 @@
     "subtitle": "Decode any onchain transaction",
     "primaryCategory": "utility",
     "description": "Paste any Base transaction hash and get a plain-English explanation in seconds — no crypto knowledge required. Find out exactly what you did, what you paid, and whether anything looks off."
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwOTkzODIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhjYTA4M2RCMUY4OTI5ZWFEOGUzYjY3ODNEQTlGYjhhMDUzMWRkYTFkIn0",
+    "payload": "eyJkb21haW4iOiJ3dGZqdXN0aGFwcGVuZWQudmVyY2VsLmFwcCJ9",
+    "signature": "w/zOpGTKfUAV350hSApJp3PMhZ+mnWZowK77reEvLuVtT4arrxfhRtrVE8gVyul/0kRAKFw6fVoWUIOwwZCENxs="
   }
 }
