@@ -1,0 +1,10 @@
+{
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "functions": {
+    "src/index.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
+}
