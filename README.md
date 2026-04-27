@@ -32,7 +32,7 @@ pnpm install
 
 ```bash
 cp .env.example .env
-# Fill in ANTHROPIC_API_KEY and ALCHEMY_API_KEY
+# Fill in GEMINI_API_KEY and ALCHEMY_API_KEY
 ```
 
 ### 3. Start the dev server
@@ -44,7 +44,7 @@ pnpm dev
 
 ### 4. Test in the Farcaster Snap Emulator
 
-Open https://farcaster.xyz/~/developers/snaps and enter:
+Open <https://farcaster.xyz/~/developers/snaps> and enter:
 
 ```
 http://localhost:3003/
@@ -64,7 +64,7 @@ pnpm add -g vercel
 vercel
 
 # Set your env vars in the Vercel dashboard, then:
-vercel env add ANTHROPIC_API_KEY
+vercel env add GEMINI_API_KEY
 vercel env add ALCHEMY_API_KEY
 vercel env add SNAP_PUBLIC_BASE_URL   # your Vercel URL, no trailing slash
 vercel env add TURSO_DATABASE_URL

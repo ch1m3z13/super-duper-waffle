@@ -14,7 +14,7 @@ pnpm dev           # Start dev server on http://localhost:3003
 pnpm build         # Type-check with tsc
 ```
 
-Test in the Snap Emulator at https://farcaster.xyz/~/developers/snaps, pointing it at `http://localhost:3003/`.
+Test in the Snap Emulator at <https://farcaster.xyz/~/developers/snaps>, pointing it at `http://localhost:3003/`.
 
 ## Architecture
 
@@ -30,6 +30,7 @@ src/
 ```
 
 **Request flow for `?action=explain`:**
+
 1. Validate tx hash format
 2. Check if FID is paid or under free limit (3 per FID)
 3. `explainTransaction(tx)` → Alchemy (eth_getTransactionByHash + eth_getTransactionReceipt in parallel), then Claude with a structured prompt asking for `{summary, risk, riskReason}` JSON
@@ -41,7 +42,7 @@ src/
 
 ## Key Environment Variables
 
-- `ANTHROPIC_API_KEY` — Claude API key
+- `GEMINI_API_KEY` — Claude API key
 - `ALCHEMY_API_KEY` — Base mainnet JSON-RPC
 - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` — production persistence (not needed locally)
 - `SNAP_PUBLIC_BASE_URL` — your Vercel URL (auto-detected if not set)
