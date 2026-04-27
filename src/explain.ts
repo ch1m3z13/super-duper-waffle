@@ -120,25 +120,17 @@ export async function explainTransaction(txHash: string): Promise<TxResult> {
   };
 
   // ---------------------------------------------------------------------------
-  // Ask Claude for a plain-English explanation
+  // Ask Gemini for a plain-English explanation
   // ---------------------------------------------------------------------------
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) throw new Error("GEMINI_API_KEY is not set");
 
-  const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": anthropicKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 400,
-      system: `You are a blockchain transaction explainer for complete beginners on the Base network.
+  const geminiModel = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
 
-Given raw transaction data, respond ONLY with a valid JSON object. No markdown, no backticks, no emojis, no extra text.
+  const systemPrompt = `You are a blockchain transaction explainer for complete beginners on the Base network.
+
+Given raw transaction data, respond ONLY with a valid JSON object. No markdown, no backticks, no extra text.
 
 Required fields:
 {
@@ -150,25 +142,39 @@ Required fields:
 Risk guide:
 - safe: normal transfer, swap, or mint. Status succeeded.
 - warning: failed transaction, unusual gas, interaction with unknown contract.
-- danger: potential scam pattern, approval of unlimited tokens, suspicious address.`,
-      messages: [
-        {
-          role: "user",
-          content: `Explain this Base network transaction:\n${JSON.stringify(txContext, null, 2)}`,
-        },
-      ],
-    }),
-  });
+- danger: potential scam pattern, approval of unlimited tokens, suspicious address.`;
+
+  const aiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `Explain this Base network transaction:\n${JSON.stringify(txContext, null, 2)}`,
+              },
+            ],
+          },
+        ],
+        generationConfig: { maxOutputTokens: 400 },
+      }),
+    }
+  );
 
   if (!aiRes.ok) {
-    throw new Error(`Anthropic API error: ${aiRes.status}`);
+    throw new Error(`Gemini API error: ${aiRes.status}`);
   }
 
   const aiData = (await aiRes.json()) as {
-    content?: { type: string; text: string }[];
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
 
-  const rawText = aiData.content?.find((b) => b.type === "text")?.text ?? "{}";
+  const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
 
   let parsed: {
     summary: string;
